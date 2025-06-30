@@ -1,0 +1,39 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - echo Checking for build type
+      - IMAGE_TAG=build-job-$(echo $CODEBUILD_BUILD_ID | awk -F":" '{print $2}')
+      - cp .env.product .env
+      - echo $'\n'MONGODB_URI=$DOCUMENTDB_URI >> .env
+      - echo $'\n'REDIS_HOST=$REDIS_HOST_ENDPOINT_PRIMARY >> .env
+      - echo $'\n'REDIS_PORT=$REDIS_PORT >> .env
+      - echo $'\n'JWT_SECRET=$JWT_SECRET >> .env
+      - echo $'\n'AWS_REGION=$AWS_REGION >> .env
+      - echo $'\n'AWS_KMS_KEY_ID=$KMS_ARN >> .env
+      - echo $'\n'AWS_BUCKET=$S3_BUCKET >> .env
+      - echo $'\n'ON_JOB=true >> .env
+      - echo $'\n'AWS_S3_URL=$S3_URL >> .env
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo pwd `pwd`
+      - echo Building the Docker image...
+      - docker build -t $REPO_URL:latest .
+      - docker tag $REPO_URL:latest $REPO_URL:$IMAGE_TAG
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image...
+      - docker push $REPO_URL:$IMAGE_TAG
+      - echo Writing image definitions file...
+      - printf '[{"name":"container-job","imageUri":"%s"}]'
+        $REPO_URL:$IMAGE_TAG > imagedefinitions.json
+      - cat imagedefinitions.json
+
+artifacts:
+  files: imagedefinitions.json
+

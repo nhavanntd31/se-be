@@ -1,0 +1,15 @@
+setup.py
+src/__init__.py
+src/config.py
+src/database.py
+src/main.py
+src/models/__init__.py
+src/models/base.py
+src/models/models.py
+src/services/__init__.py
+src/services/student_service.py
+student_service.egg-info/PKG-INFO
+student_service.egg-info/SOURCES.txt
+student_service.egg-info/dependency_links.txt
+student_service.egg-info/requires.txt
+student_service.egg-info/top_level.txt

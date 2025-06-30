@@ -1,0 +1,21 @@
+sqlalchemy==2.0.27
+pandas==2.0.3
+numpy==1.24.3
+# scikit-learn==1.2.2
+python-dotenv==1.0.1
+psycopg2-binary==2.9.9
+alembic==1.13.1
+pydantic==2.6.1
+pydantic-settings==2.1.0
+uuid==1.30
+pymysql
+torch==2.0.1
+torchvision
+torchaudio
+matplotlib
+seaborn
+langchain==0.1.20
+langchain-google-genai==1.0.10
+weasyprint==61.2
+pdfkit==1.0.0
+python-dateutil==2.8.2

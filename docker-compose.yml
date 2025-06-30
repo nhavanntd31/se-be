@@ -1,0 +1,37 @@
+# Use root/example as user/password credentials
+version: '3.6'
+
+services:
+  redis:
+    image: redis:alpine
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - 6379:6379
+    networks:
+      - fullnode
+  postgres:
+    image: postgres
+    container_name: postgres
+    restart: always
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: abc123
+    ports:
+      - 5432:5432
+    networks:
+      - fullnode
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8089:8080
+    depends_on:
+      - postgres
+    networks:
+      - fullnode
+networks:
+  fullnode:
+    driver: bridge

@@ -1,0 +1,16 @@
+export const ERROR_CODE = {
+  DEFAULT: 'E0',
+
+  // validate
+  REQUIRED: 'E1',
+  MAX_LENGTH: 'E99',
+  EMAIL_FORMAT: 'E2',
+  PASSWORD_FORMAT: 'E4',
+  CODE_INVALID: 'E6',
+  EMAIL_NOT_REGISTER: 'E7',
+  FAILED_LOGIN_3RD: 'E9',
+
+  // logic
+  EMAIL_EXIST: 'E3',
+  WRONG_PASSWORD: 'E8',
+};
