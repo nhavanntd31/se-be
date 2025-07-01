@@ -15,6 +15,7 @@ import { Statistic } from 'src/database/entities/statistic'
 import { UploadEvent } from 'src/database/entities/upload_event'
 import { NotificationUser } from 'src/database/entities/notification_user'
 import { Notification } from 'src/database/entities/notification'
+import { ConfigModule } from 'src/config/config.module'
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -35,6 +36,7 @@ import { Notification } from 'src/database/entities/notification'
       dest: './uploads',
     }),
     QueueModule,
+    ConfigModule,
   ],
   controllers: [DataController],
   providers: [DataService],

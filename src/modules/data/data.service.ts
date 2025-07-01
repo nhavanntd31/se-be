@@ -22,6 +22,8 @@ import { StudentProcess } from 'src/database/entities/student_process'
 import { generateSemesterList, isSemesterInRange } from 'src/common/utils/utils'
 import { generateStudentPDFReport } from 'src/common/utils/llm_report.utils'
 import * as fs from 'fs'
+import { analyzePLOExcel } from 'src/common/utils/plo_analyze.utils'
+import { ConfigService } from 'src/config/config.service'
 
 
 @Injectable()
@@ -38,7 +40,8 @@ export class DataService {
     @InjectRepository(StudentProcess) private studentProcessRepository: Repository<StudentProcess>,
     @InjectRepository(Notification) private notificationRepository: Repository<Notification>,
     @InjectRepository(NotificationUser) private notiUserRepository: Repository<NotificationUser>,
-    private queueService: QueueService
+    private queueService: QueueService,
+    private configService: ConfigService
   ) {}
 
   async processCsv(file: Express.Multer.File) {
@@ -742,5 +745,18 @@ export class DataService {
     const buffer = await generateStudentPDFReport(student, studentProcesses)
     return buffer
   }
+  async analyzePLOExcel(files: { excel?: Express.Multer.File[], param?: Express.Multer.File[] }) {
+    if (!files.excel?.[0]) throw new Error('Missing excel file')
+      const excelBuffer = fs.readFileSync(files.excel[0].path)
+      const paramBuffer = files.param?.[0] ? fs.readFileSync(files.param[0].path) : undefined
+      const { analyzeBuffer, bloomBuffer, bloomTable } = await analyzePLOExcel(excelBuffer, paramBuffer, this.configService)
+      return {
+        analyze: analyzeBuffer.toString('base64'),
+        bloom: bloomBuffer.toString('base64'),
+        analyzeContent: analyzeBuffer.toString('utf-8'),
+        bloomTable: bloomTable,
+        analyzeContentType: 'text/markdown',
+        bloomContentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    }
+  }
 }
-
