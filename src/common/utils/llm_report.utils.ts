@@ -12,30 +12,82 @@ const promptTemplate = `Dưới đây là thông tin học tập của một sin
 
 {text}
 
-Hãy tạo báo cáo đánh giá học tập dưới dạng HTML hoàn chỉnh với các yêu cầu sau:
-1. Đánh giá sự thay đổi trong kết quả học tập qua từng học kỳ
-2. Nhận định về xu hướng học lực hiện tại
-3. Đưa ra đề xuất thực tế nhằm duy trì hoặc nâng cao kết quả học tập
-4. Thêm nhận xét tổng kết và lưu ý cần thiết
-5. Trả lời với tông điệu của cố vấn học tập chuyên nghiệp
-Trả về HTML hoàn chỉnh với cấu trúc sau:
-- DOCTYPE html với encoding UTF-8
-- CSS inline styling chuyên nghiệp (màu xanh dương chủ đạo)
-- Header: "BÁO CÁO ĐÁNH GIÁ HỌC TẬP SINH VIÊN"
-- Thông tin cơ bản sinh viên trong bảng
-- Biểu đồ xu hướng điểm số (text-based chart)
-- Phần "ĐÁNH GIÁ KẾT QUẢ HỌC TẬP" với bullet points
-- Phần "ĐỀ XUẤT HƯỚNG PHÁT TRIỂN" với action items
-- Footer với thời gian tạo báo cáo và chữ ký cố vấn
-CSS styling yêu cầu:
-- Font chữ Arial/sans-serif
-- Màu chủ đạo: #2E86AB (xanh dương)
-- Background: #F8F9FA
-- Border radius cho các card
-- Shadow effects nhẹ
-- Spacing hợp lý
-- Print-friendly
-`
+Hãy điền thông tin vào template HTML sau đây, thay thế các placeholder bằng nội dung phù hợp:
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo cáo đánh giá học tập sinh viên</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #F8F9FA; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 30px; }
+        .header { text-align: center; color: #2E86AB; border-bottom: 3px solid #2E86AB; padding-bottom: 20px; margin-bottom: 30px; }
+        .student-info { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 25px; }
+        .student-info table { width: 100%; border-collapse: collapse; }
+        .student-info td { padding: 8px; border-bottom: 1px solid #ddd; }
+        .student-info td:first-child { font-weight: bold; color: #2E86AB; width: 30%; }
+        .performance-chart { background: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 25px; }
+        .section { margin-bottom: 25px; }
+        .section h3 { color: #2E86AB; border-left: 4px solid #2E86AB; padding-left: 15px; }
+        .section ul { padding-left: 20px; }
+        .section li { margin-bottom: 8px; line-height: 1.6; }
+        .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; }
+        @media print { body { background: white; } .container { box-shadow: none; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>BÁO CÁO ĐÁNH GIÁ HỌC TẬP SINH VIÊN</h1>
+        </div>
+        
+        <div class="student-info">
+            <table>
+                <tr><td>Mã sinh viên:</td><td>{student_id}</td></tr>
+                <tr><td>Họ tên:</td><td>{student_name}</td></tr>
+                <tr><td>Lớp:</td><td>{class_name}</td></tr>
+                <tr><td>Ngành:</td><td>{major_name}</td></tr>
+                <tr><td>Khoa:</td><td>{department_name}</td></tr>
+                <tr><td>Số học kỳ đã hoàn thành:</td><td>{semester_count}</td></tr>
+            </table>
+        </div>
+
+        <div class="performance-chart">
+            <h3>Biểu đồ xu hướng điểm số</h3>
+            <pre>{performance_chart}</pre>
+        </div>
+
+        <div class="section">
+            <h3>ĐÁNH GIÁ KẾT QUẢ HỌC TẬP</h3>
+            <ul>
+                {evaluation_points}
+            </ul>
+        </div>
+
+        <div class="section">
+            <h3>ĐỀ XUẤT HƯỚNG PHÁT TRIỂN</h3>
+            <ul>
+                {recommendation_points}
+            </ul>
+        </div>
+
+        <div class="footer">
+            <p>Báo cáo được tạo ngày: {current_date}</p>
+            <p><strong>Cố vấn học tập</strong></p>
+        </div>
+    </div>
+</body>
+</html>
+
+Yêu cầu:
+1. Thay thế {student_id}, {student_name}, {class_name}, {major_name}, {department_name}, {semester_count} bằng thông tin thực tế
+2. Tạo {performance_chart} dạng text-based chart hiển thị xu hướng CPA qua các học kỳ
+3. Tạo {evaluation_points} với 3-4 bullet points đánh giá kết quả học tập
+4. Tạo {recommendation_points} với 3-4 bullet points đề xuất cải thiện
+5. Thay {current_date} bằng ngày hiện tại
+6. Chỉ trả về HTML hoàn chỉnh, không thêm text nào khác`
 
 function buildStudentReportText(student: Student, processes: StudentProcess[]) {
   const info = [

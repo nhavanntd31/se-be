@@ -23,6 +23,10 @@ import { User, UserRole } from 'src/database/entities';
 import { Roles } from 'src/common/decorators/role.decorator';
 import { PublicGuard, RolesGuard } from 'src/common/guards';
 import { BaseSearchDto } from 'src/common/constants';
+import { analyzePLOExcel } from 'src/common/utils/plo_analyze.utils'
+import * as fs from 'fs'
+import axios from 'axios'
+import FormData from 'form-data'
 
 @Controller('data')
 @UseGuards(JwtAuthGuard, PublicGuard)
@@ -126,6 +130,86 @@ export class DataController {
     return {
       buffer: buffer.toString('base64'),
       contentType: 'application/pdf'
+    }
+  }
+
+  @Post('analyze-plo')
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'excel', maxCount: 1 },
+    { name: 'param', maxCount: 1 }
+  ]))
+  async analyzePLO(@UploadedFiles() files: { excel?: Express.Multer.File[], param?: Express.Multer.File[] }) {
+    if (!files.excel?.[0]) throw new Error('Missing excel file')
+    const excelBuffer = fs.readFileSync(files.excel[0].path)
+    const paramBuffer = files.param?.[0] ? fs.readFileSync(files.param[0].path) : undefined
+    const { analyzeBuffer, bloomBuffer, bloomTable } = await analyzePLOExcel(excelBuffer, paramBuffer)
+    return {
+      analyze: analyzeBuffer.toString('base64'),
+      bloom: bloomBuffer.toString('base64'),
+      analyzeContent: analyzeBuffer.toString('utf-8'),
+      bloomTable: bloomTable,
+      analyzeContentType: 'text/markdown',
+      bloomContentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    }
+  }
+
+  @Post('predict-students')
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'course', maxCount: 1 },
+    { name: 'performance', maxCount: 1 }
+  ]))
+  async predictStudents(@UploadedFiles() files: { course?: Express.Multer.File[], performance?: Express.Multer.File[] }) {
+    if (!files.course?.[0] || !files.performance?.[0]) {
+      throw new Error('Missing course or performance file')
+    }
+
+    try {
+      const courseBuffer = fs.readFileSync(files.course[0].path)
+      const performanceBuffer = fs.readFileSync(files.performance[0].path)
+
+      const formData = new FormData()
+      formData.append('course_file', courseBuffer, files.course[0].originalname)
+      formData.append('performance_file', performanceBuffer, files.performance[0].originalname)
+
+      const pythonApiUrl = process.env.PYTHON_API_URL || 'http://localhost:8001'
+      const response = await axios.post(`${pythonApiUrl}/predict-students`, formData, {
+        headers: formData.getHeaders(),
+        timeout: 300000
+      })
+
+      return response.data
+    } catch (error) {
+      throw new Error(`Prediction service error: ${error.message}`)
+    }
+  }
+
+  @Post('predict-student-scenarios')
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'course', maxCount: 1 },
+    { name: 'performance', maxCount: 1 }
+  ]))
+  async predictStudentScenarios(@UploadedFiles() files: { course?: Express.Multer.File[], performance?: Express.Multer.File[] }) {
+    if (!files.course?.[0] || !files.performance?.[0]) {
+      throw new Error('Missing course or performance file')
+    }
+
+    try {
+      const courseBuffer = fs.readFileSync(files.course[0].path)
+      const performanceBuffer = fs.readFileSync(files.performance[0].path)
+
+      const formData = new FormData()
+      formData.append('course_file', courseBuffer, files.course[0].originalname)
+      formData.append('performance_file', performanceBuffer, files.performance[0].originalname)
+
+      const pythonApiUrl = process.env.PYTHON_API_URL || 'http://localhost:8001'
+      const response = await axios.post(`${pythonApiUrl}/predict-student-scenarios`, formData, {
+        headers: formData.getHeaders(),
+        timeout: 300000
+      })
+
+      return response.data
+    } catch (error) {
+      throw new Error(`Scenario prediction service error: ${error.message}`)
     }
   }
 }

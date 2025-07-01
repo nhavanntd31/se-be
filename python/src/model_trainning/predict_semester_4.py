@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import torch
 import random
-from student_performance_prediction import (
+from .student_performance_prediction import (
     StudentPerformanceDataProcessor, 
     StudentPerformancePredictor,
 )

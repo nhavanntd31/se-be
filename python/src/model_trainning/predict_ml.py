@@ -15,7 +15,7 @@ from typing import List, Dict, Tuple
 import warnings
 warnings.filterwarnings('ignore')
 
-from data_processor import (
+from .data_processor import (
     StudentPerformanceDataProcessor,
     load_and_prepare_data,
     load_and_prepare_temporal_data,

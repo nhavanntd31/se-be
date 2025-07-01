@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import torch
-from student_performance_prediction import (
+from .student_performance_prediction import (
     StudentPerformanceDataProcessor, 
     StudentPerformancePredictor,
     create_student_sequences

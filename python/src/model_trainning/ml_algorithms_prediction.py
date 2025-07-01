@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import sys
-from student_performance_prediction import (
+from .student_performance_prediction import (
     StudentPerformanceDataProcessor, 
     create_student_sequences,
     TraditionalMLTrainer,
