@@ -3,6 +3,9 @@ import axios from 'axios'
 import * as fs from 'fs'
 import * as path from 'path'
 import { v4 as uuidv4 } from 'uuid'
+import { ConfigService } from '../../config/config.service'
+
+const configService = new ConfigService()
 
 function getParam(paramBuffer?: Buffer) {
   let param: any = {}
@@ -12,11 +15,13 @@ function getParam(paramBuffer?: Buffer) {
   return param
 }
 
-async function askLLMOpenRouter(prompt: string, param: any = {}) {
-  const api_key = param.api_key || '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'
-  const model = param.model || 'mistralai/mistral-small-3.2-24b-instruct:free'
-  const temperature = param.temperature ?? 0.5
-  const system_instruction = param.system_instruction || 'You are a helpful and truthful conversational AI.'
+async function askLLMOpenRouter(prompt: string, param: any = {}, configService?: ConfigService) {
+  const config = configService?.openRouterConfig
+  const api_key = param.api_key || config.apiKey
+  const model = param.model || config.model
+  const temperature = param.temperature ?? config.temperature
+  const system_instruction = param.system_instruction || config.systemInstruction
+  const max_tokens = param.max_tokens || config.maxTokens
   const url = 'https://openrouter.ai/api/v1/chat/completions'
   const headers = {
     'Authorization': `Bearer ${api_key}`,
@@ -28,7 +33,7 @@ async function askLLMOpenRouter(prompt: string, param: any = {}) {
       { role: 'system', content: system_instruction },
       { role: 'user', content: prompt }
     ],
-    max_tokens: 32000,
+    max_tokens,
     temperature
   }
   if (param.tools) {
@@ -44,7 +49,8 @@ const DEFAULT_PROMPT = '# Phân tích chuẩn đầu ra chương trình đào t�
 
 export async function analyzePLOExcel(
   excelBuffer: Buffer,
-  paramBuffer?: Buffer
+  paramBuffer?: Buffer,
+  configService?: ConfigService
 ): Promise<{ analyzeBuffer: Buffer, bloomBuffer: Buffer, bloomTable: any[] }> {
   if (!excelBuffer || excelBuffer.length === 0) {
     throw new Error('Excel buffer is empty or invalid')

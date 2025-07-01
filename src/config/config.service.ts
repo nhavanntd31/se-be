@@ -86,6 +86,14 @@ export interface CmdKeyConfig {
   key: string;
 }
 
+export interface OpenRouterConfig {
+  apiKey: string;
+  model: string;
+  temperature: number;
+  systemInstruction: string;
+  maxTokens: number;
+}
+
 export class ConfigService {
   private readonly envConfig: dotenv.DotenvParseOutput;
 
@@ -134,6 +142,12 @@ export class ConfigService {
 
     ON_JOB: Joi.boolean().default(false),
     CMD_KEY: Joi.string().default(null),
+
+    OPENROUTER_API_KEY: Joi.string().default('sk-or-v1-...'),
+    OPENROUTER_MODEL: Joi.string().default('mistralai/mistral-small-3.2-24b-instruct:free'),
+    OPENROUTER_TEMPERATURE: Joi.number().default(0.5),
+    OPENROUTER_SYSTEM_INSTRUCTION: Joi.string().default('You are a helpful and truthful conversational AI.'),
+    OPENROUTER_MAX_TOKENS: Joi.number().default(32000),
   };
 
   constructor() {
@@ -248,6 +262,16 @@ export class ConfigService {
   }
   get basePath(): string {
     return this.envConfig.APP_URL;
+  }
+
+  get openRouterConfig(): OpenRouterConfig {
+    return {
+      apiKey: String(this.envConfig.OPENROUTER_API_KEY),
+      model: String(this.envConfig.OPENROUTER_MODEL),
+      temperature: Number(this.envConfig.OPENROUTER_TEMPERATURE),
+      systemInstruction: String(this.envConfig.OPENROUTER_SYSTEM_INSTRUCTION),
+      maxTokens: Number(this.envConfig.OPENROUTER_MAX_TOKENS),
+    };
   }
 
   public get(key: string): string {
