@@ -22,6 +22,7 @@ import { StudentProcess } from 'src/database/entities/student_process'
 import { generateSemesterList, isSemesterInRange } from 'src/common/utils/utils'
 import { generateStudentPDFReport } from 'src/common/utils/llm_report.utils'
 import * as fs from 'fs'
+import * as crypto from 'crypto'
 import { analyzePLOExcel } from 'src/common/utils/plo_analyze.utils'
 import { ConfigService } from 'src/config/config.service'
 
@@ -746,17 +747,41 @@ export class DataService {
     return buffer
   }
   async analyzePLOExcel(files: { excel?: Express.Multer.File[], param?: Express.Multer.File[] }) {
-    if (!files.excel?.[0]) throw new Error('Missing excel file')
-      const excelBuffer = fs.readFileSync(files.excel[0].path)
-      const paramBuffer = files.param?.[0] ? fs.readFileSync(files.param[0].path) : undefined
-      const { analyzeBuffer, bloomBuffer, bloomTable } = await analyzePLOExcel(excelBuffer, paramBuffer, this.configService)
-      return {
-        analyze: analyzeBuffer.toString('base64'),
-        bloom: bloomBuffer.toString('base64'),
-        analyzeContent: analyzeBuffer.toString('utf-8'),
-        bloomTable: bloomTable,
-        analyzeContentType: 'text/markdown',
-        bloomContentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    if (!files.excel?.length) throw new Error('Missing excel files')
+    
+    const paramBuffer = files.param?.[0] ? fs.readFileSync(files.param[0].path) : undefined
+    const results = []
+    
+    for (let i = 0; i < files.excel.length; i++) {
+      const file = files.excel[i]
+      const excelBuffer = fs.readFileSync(file.path)
+      
+      try {
+        const { analyzeBuffer, bloomBuffer, bloomTable } = await analyzePLOExcel(excelBuffer, paramBuffer, this.configService)
+        
+        results.push({
+          fileIndex: i,
+          fileName: file.originalname,
+          analyze: analyzeBuffer.toString('base64'),
+          bloom: bloomBuffer.toString('base64'),
+          analyzeContent: analyzeBuffer.toString('utf-8'),
+          bloomTable: bloomTable,
+          analyzeContentType: 'text/markdown',
+          bloomContentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })
+      } catch (error) {
+        results.push({
+          fileIndex: i,
+          fileName: file.originalname,
+          error: error.message
+        })
+      }
+    }
+    
+    return {
+      results,
+      totalFiles: files.excel.length,
+      successfulFiles: results.filter(r => !r.error).length
     }
   }
 }

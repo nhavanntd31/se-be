@@ -135,7 +135,7 @@ export class DataController {
 
   @Post('analyze-plo')
   @UseInterceptors(FileFieldsInterceptor([
-    { name: 'excel', maxCount: 1 },
+    { name: 'excel', maxCount: 5 },
     { name: 'param', maxCount: 1 }
   ]))
   async analyzePLO(@UploadedFiles() files: { excel?: Express.Multer.File[], param?: Express.Multer.File[] }) {

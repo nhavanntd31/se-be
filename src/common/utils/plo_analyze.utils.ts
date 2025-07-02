@@ -15,16 +15,16 @@ function getParam(paramBuffer?: Buffer) {
   return param
 }
 
-async function askLLMOpenRouter(prompt: string, param: any = {}, configService?: ConfigService) {
+async function askLLMOpenRouter(prompt: string, param: any = {}, configService: ConfigService) {
   try {
     console.log('Request params:', JSON.stringify(param, null, 2))
     
     const config = configService?.openRouterConfig
-    const api_key = param.api_key || config.apiKey
-    const model = param.model || config.model
-    const temperature = param.temperature ?? config.temperature
-    const system_instruction = param.system_instruction || config.systemInstruction
-    const max_tokens = param.max_tokens || config.maxTokens
+    const api_key = param?.api_key || config?.apiKey
+    const model = param?.model || config?.model
+    const temperature = param?.temperature ?? config?.temperature
+    const system_instruction = param?.system_instruction || config?.systemInstruction
+    const max_tokens = param?.max_tokens || config?.maxTokens
     const url = 'https://openrouter.ai/api/v1/chat/completions'
     const headers = {
       'Authorization': `Bearer ${api_key}`,
@@ -45,6 +45,9 @@ async function askLLMOpenRouter(prompt: string, param: any = {}, configService?:
     }
     const response = await axios.post(url, payload, { headers, timeout: 120000 })
     const result = response.data
+    if (result.error) {
+      throw new Error(result.error)
+    }
     return result.choices[0].message.content || ''
   } catch (error) {
     console.error('Error in askLLMOpenRouter:', error)
@@ -86,10 +89,10 @@ export async function analyzePLOExcel(
       })
 
       const param = getParam(paramBuffer)
-      const customPrompt = param.prompt || DEFAULT_PROMPT
+      const customPrompt = param?.prompt || DEFAULT_PROMPT
       const prompt = `Phân tích các chuẩn đầu ra chương trình đào tạo (PLO) sau đây theo yêu cầu được cung cấp. Thực hiện phân tích cho từng PLO và tổng hợp kết quả vào một bảng ánh xạ Bloom cuối cùng.\n${customPrompt}\n\nDanh sách PLO:\n${ploData.map(p=>`**Mã PLO**: ${p.id}\n**Mô tả**: ${p.plo}`).join('\n\n')}`
 
-      const content = await askLLMOpenRouter(prompt, param)
+      const content = await askLLMOpenRouter(prompt, param, configService)
 
       const analyzeBuffer = Buffer.from('# Kết quả phân tích PLO\n\n' + content, 'utf-8')
 
