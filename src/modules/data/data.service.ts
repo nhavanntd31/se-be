@@ -750,34 +750,30 @@ export class DataService {
     if (!files.excel?.length) throw new Error('Missing excel files')
     
     const paramBuffer = files.param?.[0] ? fs.readFileSync(files.param[0].path) : undefined
-    const results = []
-    
-    for (let i = 0; i < files.excel.length; i++) {
-      const file = files.excel[i]
-      const excelBuffer = fs.readFileSync(file.path)
-      
-      try {
-        const { analyzeBuffer, bloomBuffer, bloomTable } = await analyzePLOExcel(excelBuffer, paramBuffer, this.configService)
-        
-        results.push({
-          fileIndex: i,
-          fileName: file.originalname,
-          analyze: analyzeBuffer.toString('base64'),
-          bloom: bloomBuffer.toString('base64'),
-          analyzeContent: analyzeBuffer.toString('utf-8'),
-          bloomTable: bloomTable,
-          analyzeContentType: 'text/markdown',
-          bloomContentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        })
-      } catch (error) {
-        results.push({
-          fileIndex: i,
-          fileName: file.originalname,
-          error: error.message
-        })
-      }
-    }
-    
+    const results = await Promise.all(
+      files.excel.map(async (file, i) => {
+        const excelBuffer = fs.readFileSync(file.path)
+        try {
+          const { analyzeBuffer, bloomBuffer, bloomTable } = await analyzePLOExcel(excelBuffer, paramBuffer, this.configService)
+          return {
+            fileIndex: i,
+            fileName: file.originalname,
+            analyze: analyzeBuffer.toString('base64'),
+            bloom: bloomBuffer.toString('base64'),
+            analyzeContent: analyzeBuffer.toString('utf-8'),
+            bloomTable: bloomTable,
+            analyzeContentType: 'text/markdown',
+            bloomContentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          }
+        } catch (error) {
+          return {
+            fileIndex: i,
+            fileName: file.originalname,
+            error: error.message
+          }
+        }
+      })
+    )
     return {
       results,
       totalFiles: files.excel.length,
