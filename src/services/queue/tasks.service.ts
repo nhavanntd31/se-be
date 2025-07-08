@@ -501,7 +501,7 @@ export class TasksService implements OnModuleInit {
         studentMediumRate: result.studentMediumRate,
         studentBadRate: result.studentBadRate,
       }, {
-        conflictPaths: ['name', 'semester', 'department'],
+        conflictPaths: ['semesterId', 'departmentId'],
       });
     }))
   }
@@ -594,7 +594,7 @@ export class TasksService implements OnModuleInit {
         studentMediumRate: result.studentMediumRate,
         studentBadRate: result.studentBadRate,
       }, {
-        conflictPaths: ['name', 'semester', 'major'],
+        conflictPaths: ['semesterId', 'majorId'],
       });
     }));
   }
@@ -652,7 +652,7 @@ export class TasksService implements OnModuleInit {
         studentMediumRate: result.studentMediumRate,
         studentBadRate: result.studentBadRate,
       }, {
-        conflictPaths: ['name', 'semester', 'class'],
+        conflictPaths: ['semesterId', 'classId'],
       });
     }))
   } 

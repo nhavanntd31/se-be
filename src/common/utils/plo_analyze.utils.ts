@@ -5,14 +5,16 @@ import * as path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { ConfigService } from '../../config/config.service'
 
-const configService = new ConfigService()
 
 function getParam(paramBuffer?: Buffer) {
-  let param: any = {}
-  if (paramBuffer) {
-    try { param = JSON.parse(paramBuffer.toString()) } catch {}
+  if (!paramBuffer) return {}
+  try {
+    const param = JSON.parse(paramBuffer.toString())
+    if (param && typeof param === 'object') return param
+    return {}
+  } catch {
+    return {}
   }
-  return param
 }
 
 async function askLLMOpenRouter(prompt: string, param: any = {}, configService: ConfigService) {
@@ -43,9 +45,10 @@ async function askLLMOpenRouter(prompt: string, param: any = {}, configService: 
       payload.tools = param.tools
       payload.tool_choice = 'auto'
     }
-    const response = await axios.post(url, payload, { headers, timeout: 120000 })
+    const response = await axios.post(url, payload, { headers })
     const result = response.data
     if (result.error) {
+      console.log(result.error)
       throw new Error(result.error)
     }
     return result.choices[0].message.content || ''

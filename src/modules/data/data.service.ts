@@ -147,7 +147,10 @@ export class DataService {
     }
     const schoolStatistic = await this.statisticRepository.findOne({
       where: {
-        semesterId: body.semesterId
+        semesterId: body.semesterId,
+        departmentId: IsNull(),
+        majorId: IsNull(),
+        classId: IsNull(),
       }
     })
     if (!schoolStatistic) {
