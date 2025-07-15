@@ -63,6 +63,7 @@ const DEFAULT_PROMPT = '# Phân tích chuẩn đầu ra chương trình đào t�
 export async function analyzePLOExcel(
   excelBuffer: Buffer,
   paramBuffer?: Buffer,
+  bodyPrompt?: string,
   configService?: ConfigService
 ): Promise<{ analyzeBuffer: Buffer, bloomBuffer: Buffer, bloomTable: any[] }> {
   try {
@@ -92,7 +93,7 @@ export async function analyzePLOExcel(
       })
 
       const param = getParam(paramBuffer)
-      const customPrompt = param?.prompt || DEFAULT_PROMPT
+      const customPrompt = bodyPrompt || param?.prompt || DEFAULT_PROMPT
       const prompt = `Phân tích các chuẩn đầu ra chương trình đào tạo (PLO) sau đây theo yêu cầu được cung cấp. Thực hiện phân tích cho từng PLO và tổng hợp kết quả vào một bảng ánh xạ Bloom cuối cùng.\n${customPrompt}\n\nDanh sách PLO:\n${ploData.map(p=>`**Mã PLO**: ${p.id}\n**Mô tả**: ${p.plo}`).join('\n\n')}`
 
       const content = await askLLMOpenRouter(prompt, param, configService)

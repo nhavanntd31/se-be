@@ -77,3 +77,15 @@ export class GetStudentsBySemesterRangeDto extends BaseSearchDto {
   endSemester: string;
 }
 
+export class PromptDto {
+  @IsString()
+  @IsNotEmpty()
+  prompt: string;
+}
+
+export class CLOSuggestDto extends PromptDto {}
+
+export class CLOCheckDto extends PromptDto {}
+
+export class PLOAnalyzeDto extends PromptDto {}
+

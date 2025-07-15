@@ -15,7 +15,7 @@ import {
   FilesInterceptor,
 } from '@nestjs/platform-express';
 import { DataService } from './data.service';
-import { GetStatisticInfoDto, GetCPATrajectoryDto, GetStudentsBySemesterRangeDto } from './dto';
+import { GetStatisticInfoDto, GetCPATrajectoryDto, GetStudentsBySemesterRangeDto, CLOSuggestDto, CLOCheckDto, PLOAnalyzeDto } from './dto';
 import { CurrentUser } from 'src/common/decorators/user.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { ApiBearerAuth, ApiUnauthorizedResponse } from '@nestjs/swagger';
@@ -138,8 +138,36 @@ export class DataController {
     { name: 'excel', maxCount: 5 },
     { name: 'param', maxCount: 1 }
   ]))
-  async analyzePLO(@UploadedFiles() files: { excel?: Express.Multer.File[], param?: Express.Multer.File[] }) {
-    return await this.dataService.analyzePLOExcel(files);
+  async analyzePLO(
+    @UploadedFiles() files: { excel?: Express.Multer.File[], param?: Express.Multer.File[] },
+    @Body() body: PLOAnalyzeDto
+  ) {
+    return await this.dataService.analyzePLOExcel(files, body);
+  }
+
+  @Post('suggest-clo')
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'syllabus', maxCount: 1 },
+    { name: 'param', maxCount: 1 }
+  ]))
+  async suggestCLO(
+    @UploadedFiles() files: { syllabus?: Express.Multer.File[], param?: Express.Multer.File[] },
+    @Body() body: CLOSuggestDto
+  ) {
+    return await this.dataService.suggestCLO(files, body);
+  }
+
+  @Post('check-clo')
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'syllabus', maxCount: 1 },
+    { name: 'clo', maxCount: 1 },
+    { name: 'param', maxCount: 1 }
+  ]))
+  async checkCLO(
+    @UploadedFiles() files: { syllabus?: Express.Multer.File[], clo?: Express.Multer.File[], param?: Express.Multer.File[] },
+    @Body() body: CLOCheckDto
+  ) {
+    return await this.dataService.checkCLO(files, body);
   }
 
 }

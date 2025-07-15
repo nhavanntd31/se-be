@@ -9,7 +9,7 @@ import { Semester } from 'src/database/entities/semester'
 import { Statistic } from 'src/database/entities/statistic'
 import { QueueService } from 'src/services/queue/queue.service'
 import { IsNull, Like, Repository, In } from 'typeorm'
-import { GetStatisticInfoDto, GetCPATrajectoryDto, GetStudentsBySemesterRangeDto } from './dto'
+import { GetStatisticInfoDto, GetCPATrajectoryDto, GetStudentsBySemesterRangeDto, CLOSuggestDto, CLOCheckDto, PLOAnalyzeDto } from './dto'
 import { ApiError } from 'src/common/responses'
 import { Student } from 'src/database/entities/students'
 import { UploadEvent } from 'src/database/entities/upload_event'
@@ -24,6 +24,7 @@ import { generateStudentPDFReport } from 'src/common/utils/llm_report.utils'
 import * as fs from 'fs'
 import * as crypto from 'crypto'
 import { analyzePLOExcel } from 'src/common/utils/plo_analyze.utils'
+import { suggestCLOFromSyllabus, checkCLOAgainstSyllabus } from 'src/common/utils/clo_analyze.utils'
 import { ConfigService } from 'src/config/config.service'
 
 
@@ -749,7 +750,7 @@ export class DataService {
     const buffer = await generateStudentPDFReport(student, studentProcesses)
     return buffer
   }
-  async analyzePLOExcel(files: { excel?: Express.Multer.File[], param?: Express.Multer.File[] }) {
+  async analyzePLOExcel(files: { excel?: Express.Multer.File[], param?: Express.Multer.File[] }, body: PLOAnalyzeDto) {
     if (!files.excel?.length) throw new Error('Missing excel files')
     
     const paramBuffer = files.param?.[0] ? fs.readFileSync(files.param[0].path) : undefined
@@ -757,7 +758,7 @@ export class DataService {
       files.excel.map(async (file, i) => {
         const excelBuffer = fs.readFileSync(file.path)
         try {
-          const { analyzeBuffer, bloomBuffer, bloomTable } = await analyzePLOExcel(excelBuffer, paramBuffer, this.configService)
+          const { analyzeBuffer, bloomBuffer, bloomTable } = await analyzePLOExcel(excelBuffer, paramBuffer, body.prompt, this.configService)
           return {
             fileIndex: i,
             fileName: file.originalname,
@@ -781,6 +782,76 @@ export class DataService {
       results,
       totalFiles: files.excel.length,
       successfulFiles: results.filter(r => !r.error).length
+    }
+  }
+
+  async suggestCLO(files: { syllabus?: Express.Multer.File[], param?: Express.Multer.File[] }, body: CLOSuggestDto) {
+    if (!files.syllabus?.length) throw new Error('Missing syllabus file')
+    
+    const syllabusFile = files.syllabus[0]
+    const syllabusBuffer = fs.readFileSync(syllabusFile.path)
+    const paramBuffer = files.param?.[0] ? fs.readFileSync(files.param[0].path) : undefined
+    
+    try {
+      const { markdownBuffer, excelBuffer, cloList } = await suggestCLOFromSyllabus(
+        syllabusBuffer, 
+        paramBuffer,
+        body.prompt, 
+        this.configService
+      )
+      
+      return {
+        fileName: syllabusFile.originalname,
+        markdown: markdownBuffer.toString('base64'),
+        excel: excelBuffer.toString('base64'),
+        markdownContent: markdownBuffer.toString('utf-8'),
+        cloList: cloList,
+        markdownContentType: 'text/markdown',
+        excelContentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      }
+    } catch (error) {
+      return {
+        fileName: syllabusFile.originalname,
+        error: error.message
+      }
+    }
+  }
+
+  async checkCLO(files: { syllabus?: Express.Multer.File[], clo?: Express.Multer.File[], param?: Express.Multer.File[] }, body: CLOCheckDto) {
+    if (!files.syllabus?.length) throw new Error('Missing syllabus file')
+    if (!files.clo?.length) throw new Error('Missing CLO file')
+    
+    const syllabusFile = files.syllabus[0]
+    const cloFile = files.clo[0]
+    const syllabusBuffer = fs.readFileSync(syllabusFile.path)
+    const cloBuffer = fs.readFileSync(cloFile.path)
+    const paramBuffer = files.param?.[0] ? fs.readFileSync(files.param[0].path) : undefined
+    
+    try {
+      const { markdownBuffer, excelBuffer, evaluationTable } = await checkCLOAgainstSyllabus(
+        syllabusBuffer,
+        cloBuffer,
+        paramBuffer,
+        body.prompt,
+        this.configService
+      )
+      
+      return {
+        syllabusFileName: syllabusFile.originalname,
+        cloFileName: cloFile.originalname,
+        markdown: markdownBuffer.toString('base64'),
+        excel: excelBuffer.toString('base64'),
+        markdownContent: markdownBuffer.toString('utf-8'),
+        evaluationTable: evaluationTable,
+        markdownContentType: 'text/markdown',
+        excelContentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      }
+    } catch (error) {
+      return {
+        syllabusFileName: syllabusFile.originalname,
+        cloFileName: cloFile.originalname,
+        error: error.message
+      }
     }
   }
 }
