@@ -793,7 +793,7 @@ export class DataService {
     const paramBuffer = files.param?.[0] ? fs.readFileSync(files.param[0].path) : undefined
     
     try {
-      const { markdownBuffer, excelBuffer, cloList } = await suggestCLOFromSyllabus(
+      const { markdownBuffer, excelBuffer, cloTable } = await suggestCLOFromSyllabus(
         syllabusBuffer, 
         paramBuffer,
         body.prompt, 
@@ -805,7 +805,7 @@ export class DataService {
         markdown: markdownBuffer.toString('base64'),
         excel: excelBuffer.toString('base64'),
         markdownContent: markdownBuffer.toString('utf-8'),
-        cloList: cloList,
+        cloTable: cloTable,
         markdownContentType: 'text/markdown',
         excelContentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       }

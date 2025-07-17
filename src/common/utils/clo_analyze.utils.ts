@@ -7,10 +7,33 @@ import { ConfigService } from '../../config/config.service'
 
 const DEFAULT_CLO_SUGGEST_PROMPT = `Bạn là một chuyên gia thiết kế chương trình đào tạo đại học.
 Cho đề cương học phần sau, hãy đề xuất **{num_clo} Chuẩn đầu ra học phần (CLO)**.
-Yêu cầu: mỗi CLO cụ thể, đo lường được, có động từ Bloom, phủ kiến thức/kỹ năng/thái độ, trình bày gạch đầu dòng.
+Yêu cầu: mỗi CLO cụ thể, đo lường được, có động từ Bloom, phủ kiến thức/kỹ năng/thái độ.
 Ngôn ngữ: tiếng Việt.
 
-Phản hồi chỉ gồm **Danh sách CLO**; không giải thích thêm.`
+## Ràng buộc chất lượng
+- **Mỗi CLO** là **một câu** mô tả hành vi có thể **đánh giá** được, dùng **động từ Bloom** rõ ràng.  (Heading 2)
+- Gắn nhãn **I/R/M** ngay cuối câu để thể hiện mức độ curriculum mapping.
+  *I* = Introduce, *R* = Reinforce, *M* = Master.
+- **Giải thích lý do** lựa chọn mức I/R/M: nêu rõ *phần, chương hoặc hoạt động* trong syllabus hỗ trợ người học đạt mức đó.  (Heading 3)
+- **Cân bằng cấp độ tư duy Bloom** – ít nhất một CLO ở mức *Phân tích/Đánh giá/Sáng tạo*.
+- **Không thêm nội dung ngoài syllabus**; nếu thiếu thông tin, ghi “(chưa đủ dữ liệu)” ở phần giải thích.
+
+**BẮT BUỘC**: Trả về kết quả dưới dạng bảng Markdown với format chính xác:
+
+| STT | Mã CLO | Nội dung | Mức độ tư duy | Giải thích |
+|-----|--------|----------|---------------|-----------|
+| 1   | CLO1   | Mô tả chi tiết CLO1 | I | Cơ sở từ chương/phần nào trong syllabus |
+| 2   | CLO2   | Mô tả chi tiết CLO2 | R | Cơ sở từ chương/phần nào trong syllabus |
+| 3   | CLO3   | Mô tả chi tiết CLO3 | M | Cơ sở từ chương/phần nào trong syllabus |
+
+Lưu ý mức độ tư duy: 
+- I (Introduce): Giới thiệu kiến thức cơ bản
+- R (Reinforce): Củng cố và vận dụng
+- M (Master): Thành thạo và sáng tạo
+
+Cột "Giải thích" phải nêu rõ cơ sở từ syllabus (chương, phần, nội dung cụ thể) làm căn cứ cho CLO đó.
+
+Chỉ trả về bảng markdown, không có text hay giải thích nào khác.`
 
 const DEFAULT_CLO_CHECK_PROMPT = `Bạn là chuyên gia đánh giá chuẩn đầu ra học phần (CLO) theo OBE/Bloom.
 Dựa trên đề cương học phần và danh sách CLO hiện có, hãy lập bảng nhận xét gồm 4 cột:
@@ -70,6 +93,38 @@ async function askLLMOpenRouter(prompt: string, param: any = {}, configService: 
   }
 }
 
+function extractCLOTable(markdownText: string): { stt: number, maCLO: string, noiDung: string, mucDoTuDuy: string, giaiThich: string }[] {
+  const lines = markdownText.split('\n')
+  const cloTable: { stt: number, maCLO: string, noiDung: string, mucDoTuDuy: string, giaiThich: string }[] = []
+  let tableStarted = false
+  
+  for (const line of lines) {
+    if (line.includes('| STT') || line.includes('|--')) {
+      tableStarted = true
+      continue
+    }
+    
+    if (tableStarted && line.startsWith('|') && !line.includes('--')) {
+      const row = line.split('|').slice(1, -1).map(x => x.trim())
+      if (row.length >= 4) {
+        const stt = parseInt(row[0]) || 0
+        const maCLO = row[1] || ''
+        const noiDung = row[2] || ''
+        const mucDoTuDuy = row[3] || ''
+        const giaiThich = row[4] || ''
+        
+        if (stt > 0 && maCLO && noiDung) {
+          cloTable.push({ stt, maCLO, noiDung, mucDoTuDuy, giaiThich })
+        }
+      }
+    } else if (tableStarted && !line.startsWith('|') && line.trim() !== '') {
+      break
+    }
+  }
+  
+  return cloTable
+}
+
 function extractCLOLines(markdownText: string): string[] {
   return markdownText
     .split('\n')
@@ -83,7 +138,7 @@ export async function suggestCLOFromSyllabus(
   paramBuffer?: Buffer,
   bodyPrompt?: string,
   configService?: ConfigService
-): Promise<{ markdownBuffer: Buffer, excelBuffer: Buffer, cloList: string[] }> {
+): Promise<{ markdownBuffer: Buffer, excelBuffer: Buffer, cloTable: { stt: number, maCLO: string, noiDung: string, mucDoTuDuy: string, giaiThich: string }[] }> {
   try {
     if (!syllabusBuffer || syllabusBuffer.length === 0) {
       throw new Error('Syllabus buffer is empty or invalid')
@@ -102,18 +157,33 @@ export async function suggestCLOFromSyllabus(
     const markdownContent = `# Đề xuất CLO cho học phần\n\n## Ngày tạo: ${new Date().toLocaleString('vi-VN')}\n\n## Số CLO được đề xuất: ${numCLO}\n\n## Kết quả đề xuất:\n\n${content}`
     const markdownBuffer = Buffer.from(markdownContent, 'utf-8')
 
-    const cloLines = extractCLOLines(content)
+    let cloTable = extractCLOTable(content)
+    
+    // Fallback to bullet points if table parsing fails
+    if (cloTable.length === 0) {
+      const cloLines = extractCLOLines(content)
+      cloTable = cloLines.map((line, index) => ({
+        stt: index + 1,
+        maCLO: `CLO${index + 1}`,
+        noiDung: line,
+        mucDoTuDuy: 'N/A',
+        giaiThich: 'N/A'
+      }))
+    }
     
     const workbook = new ExcelJS.Workbook()
     const worksheet = workbook.addWorksheet('CLO Suggestions')
     
-    worksheet.addRow(['STT', 'CLO đề xuất'])
-    cloLines.forEach((clo, index) => {
-      worksheet.addRow([index + 1, clo])
+    worksheet.addRow(['STT', 'Mã CLO', 'Nội dung', 'Mức độ tư duy', 'Giải thích'])
+    cloTable.forEach((clo) => {
+      worksheet.addRow([clo.stt, clo.maCLO, clo.noiDung, clo.mucDoTuDuy, clo.giaiThich])
     })
 
     worksheet.getColumn(1).width = 10
-    worksheet.getColumn(2).width = 80
+    worksheet.getColumn(2).width = 15
+    worksheet.getColumn(3).width = 80
+    worksheet.getColumn(4).width = 15
+    worksheet.getColumn(5).width = 50
     worksheet.getRow(1).font = { bold: true }
 
     const excelBuffer = await workbook.xlsx.writeBuffer()
@@ -121,7 +191,7 @@ export async function suggestCLOFromSyllabus(
     return { 
       markdownBuffer, 
       excelBuffer: Buffer.from(excelBuffer), 
-      cloList: cloLines 
+      cloTable: cloTable 
     }
   } catch (error) {
     console.error('Error in suggestCLOFromSyllabus:', error)
