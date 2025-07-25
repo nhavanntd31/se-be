@@ -31,6 +31,15 @@ export interface UserTokenPayload {
   role: string;
 }
 
+export enum UserPermission {
+  USER_ALL = 'user_all',
+  USER_DEPARTMENT = 'user_department',
+  USER_MAJOR = 'user_major',
+  USER_CLASS = 'user_class',
+  USER_STUDENT = 'user_student',
+  USER_PCLO = 'user_pclo',
+}
+
 @Entity({ name: 'users' })
 @Index(['id', 'createdAt', 'isDeleted'])
 export class User {
@@ -54,6 +63,9 @@ export class User {
 
   @Column({ length: 20, default: UserStatus.DRAFT })
   status: string;
+
+  @Column({ length: 20, default: UserPermission.USER_ALL })
+  permission: string;
 
   @Column({ nullable: false, length: 256, unique: true })
   email: string;
